@@ -32,14 +32,18 @@ HEADERS += \
     mainwindow.h \
     camera.h \
     mesh.h \
-    tiny_obj_loader.h
+    tiny_obj_loader.h \
+    uvwrapper.h \
+    uvsphericalwrapper.h
 
 SOURCES += \
     renderwidget.cpp \
     mainwindow.cpp \
     main.cpp \
     camera.cpp \
-    mesh.cpp
+    mesh.cpp \
+    uvwrapper.cpp \
+    uvsphericalwrapper.cpp
 
 RESOURCES += \
     data.qrc

@@ -4,12 +4,20 @@ uniform bool isWireframeOverwrite;
 uniform bool isEdgesVisible;
 uniform bool isFlatFaces;
 uniform bool isDiffuseTextureActive;
-uniform bool isBumMapActive;
+uniform bool isBumpMapActive;
+
 uniform vec3 diffuseColor;
+uniform float materialShininess;
+
+uniform sampler2D diffuseTextureSampler;
+uniform sampler2D bumpMapSampler;
 
 in vec3 fragmentPositionVSpace;
 in vec3 fragmentNormalVSpace;
+in vec3 fragmentTangentVSpace;
+in vec3 fragmentBitangentVSpace;
 in vec3 fragmentTriangleCoordinate;
+in vec2 fragmentUV;
 
 out vec3 finalColor;
 
@@ -27,35 +35,49 @@ void main()
     }
 
     vec3 lightPositionVSpace = vec3(0.0, 0.0, 0.0);
+
+    vec3 materialAmbient = diffuseColor;
     vec3 materialDiffuse = diffuseColor;
     vec3 materialSpecular = vec3(1.0, 1.0, 1.0);
 
-    float materialShininess = 24.0;
-
-    vec3 ambient = vec3(0.1, 0.1, 0.1);
-    vec3 diffuse = vec3(0.0, 0.0, 0.0);
-    vec3 specular = vec3(0.0, 0.0, 0.0);
+    if(isDiffuseTextureActive)
+    {
+      materialAmbient = texture(diffuseTextureSampler, fragmentUV).bgr;
+      materialDiffuse = texture(diffuseTextureSampler, fragmentUV).bgr;
+    }
 
     vec3 N = normalize(fragmentNormalVSpace);
-    vec3 L = normalize(lightPositionVSpace - fragmentPositionVSpace);
+    vec3 realN = N;
+    vec3 L = normalize((lightPositionVSpace - fragmentPositionVSpace));
 
-    float iDif = dot(L,N);
-
-    if( iDif > 0 )
+    if(isBumpMapActive)
     {
-        diffuse = iDif * materialDiffuse;
-
-        vec3 V = normalize(-fragmentPositionVSpace);
-        vec3 H = normalize(L + V);
-
-        float iSpec = pow(max(dot(N,H),0.0), materialShininess);
-        specular = iSpec * materialSpecular;
+      vec3 bump = ((texture(bumpMapSampler, fragmentUV).bgr * 2.0) - 1.0);
+      N = bump.r * fragmentTangentVSpace +
+          bump.g * fragmentBitangentVSpace +
+          bump.b * fragmentNormalVSpace;
     }
-    else
+
+    float realIncidence = dot(L, realN);
+    float incidence = dot(L, N);
+
+    if (realIncidence < 0)
     {
-        discard;
-        return;
+      discard;
+      return;
     }
+
+    // AMBIENT
+    vec3 ambient = vec3(0.1, 0.1, 0.1) * materialAmbient;
+
+    // DIFUSE
+    vec3 diffuse = incidence * materialDiffuse;
+
+    // SPECULAR
+    vec3 V = normalize((vec3(0.0, 0.0, 0.0) - fragmentPositionVSpace));
+    vec3 H = normalize(L + V);
+    float specualarFactor = pow(max(dot(N,H),0.0), materialShininess);
+    vec3 specular = specualarFactor * materialSpecular;
 
     finalColor = ambient + diffuse + specular;
 }

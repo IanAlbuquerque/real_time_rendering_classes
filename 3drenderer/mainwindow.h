@@ -36,6 +36,8 @@ public slots:
     void onChangeDiffuseColorR(double r);
     void onChangeDiffuseColorG(double g);
     void onChangeDiffuseColorB(double b);
+
+    void onChangeShininess(double s);
 };
 
 #endif // MAINWINDOW_H

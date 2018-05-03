@@ -34,6 +34,7 @@ public:
     void setDiffuseTextureActive(bool value);
     void setBumMapActive(bool value);
     void setDiffuseColor(float r, float g, float b);
+    void setShininess(float s);
 
 private:
     virtual void initializeGL();
@@ -56,6 +57,9 @@ private:
                       unsigned int EBO,
                       std::vector<glm::vec3>& positions,
                       std::vector<glm::vec3>& normals,
+                      std::vector<glm::vec3>& tangents,
+                      std::vector<glm::vec3>& bitangents,
+                      std::vector<glm::vec2>& UVs,
                       std::vector<unsigned int>& indices);
 
     void createTexture(unsigned int* textureID);
@@ -63,6 +67,13 @@ private:
     void loadTexture(unsigned int textureID, QImage img);
 
     void reloadMesh();
+
+    void computeTangentBasis( std::vector<glm::vec3> & positions,
+                            std::vector<glm::vec3> & normals,
+                            std::vector<glm::vec2> & UVs,
+                            std::vector<unsigned int> & indices,
+                            std::vector<glm::vec3>& tangents,
+                            std::vector<glm::vec3>& bitangents);
 
     QOpenGLShaderProgram* program;
 
@@ -88,9 +99,10 @@ private:
     bool isEdgesVisible;
     bool isFlatFaces;
     bool isDiffuseTextureActive;
-    bool isBumMapActive;
+    bool isBumpMapActive;
 
     glm::vec3 diffuseColor;
+    float materialShininess;
 
     Mesh* mesh;
 };

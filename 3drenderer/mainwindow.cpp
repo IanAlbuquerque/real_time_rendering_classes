@@ -73,7 +73,13 @@ MainWindow::MainWindow(QWidget *parent) :
                 this,
                 SLOT(onChangeDiffuseColorB(double)));
 
+  this->connect(this->ui->spinBoxShininess,
+                SIGNAL(valueChanged(double)),
+                this,
+                SLOT(onChangeShininess(double)));
+
   this->sendDiffuseColorToOpenGL();
+  this->ui->openGLWidget->setShininess(this->ui->spinBoxShininess->value());
 }
 
 void MainWindow::onImportOBJClick(bool isClicked)
@@ -158,19 +164,24 @@ void MainWindow::onSetBumMapActive(bool value)
   this->ui->openGLWidget->setBumMapActive(value);
 }
 
-void MainWindow::onChangeDiffuseColorR(double _r)
+void MainWindow::onChangeDiffuseColorR(double r)
 {
   this->sendDiffuseColorToOpenGL();
 }
 
-void MainWindow::onChangeDiffuseColorG(double _g)
+void MainWindow::onChangeDiffuseColorG(double g)
 {
   this->sendDiffuseColorToOpenGL();
 }
 
-void MainWindow::onChangeDiffuseColorB(double _b)
+void MainWindow::onChangeDiffuseColorB(double b)
 {
   this->sendDiffuseColorToOpenGL();
+}
+
+void MainWindow::onChangeShininess(double s)
+{
+  this->ui->openGLWidget->setShininess(s);
 }
 
 void MainWindow::sendDiffuseColorToOpenGL()
