@@ -55,11 +55,11 @@ void Camera::cameraPan(glm::vec2 delta)
   float screenToWorldRatio = glm::abs(glm::tan(this->fovy / 2.0f) * this->zNear * 2.0f / (float) this->height);
   delta *= screenToWorldRatio * 500.0f;
   glm::vec3 rightUnit = glm::normalize(glm::cross(this->at - this->eye, this->up));
-  glm::vec3 downUnit = glm::normalize(glm::cross(this->at - this->eye, rightUnit));
+  glm::vec3 upUnit = glm::normalize(glm::cross(rightUnit, this->at - this->eye));
   this->eye += rightUnit * delta.x;
-  this->eye += downUnit * delta.y;
+  this->eye += upUnit * delta.y;
   this->at += rightUnit * delta.x;
-  this->at += downUnit * delta.y;
+  this->at += upUnit * delta.y;
 }
 
 glm::vec3 Camera::arcballScreenCoordsToUnitSphere(glm::vec2 screenCoordinates)
@@ -68,7 +68,6 @@ glm::vec3 Camera::arcballScreenCoordsToUnitSphere(glm::vec2 screenCoordinates)
 
   screenCoordinates.x = screenCoordinates.x - this->width/ 2.0f;
   screenCoordinates.y = screenCoordinates.y - this->height/ 2.0f;
-//  screenCoordinates.y *= -1.0f;
   screenCoordinates /= screenRatio;
 
   float r = screenCoordinates.x * screenCoordinates.x + screenCoordinates.y * screenCoordinates.y;
@@ -97,12 +96,9 @@ void Camera::arcballMoveScreenCoordinates(glm::vec2 m1, glm::vec2 m2)
   glm::vec3 p1 = this->arcballScreenCoordsToUnitSphere(m1);
   glm::vec3 p2 = this->arcballScreenCoordsToUnitSphere(m2);
 
-  glm::vec3 cross = -1.0f * glm::cross(p1, p2);
+  glm::vec3 cross = glm::cross(p1, p2);
   glm::quat q = glm::quat(glm::dot(p1, p2), cross.x, cross.y, cross.z);
   glm::mat4 R = glm::toMat4(q);
-//  glm::mat3 R = glm::toMat3(q);
-
-//  this->q = q * this->q;
 
   glm::mat4 F = glm::translate(glm::lookAt(this->eye, this->at, this->up), this->eye - this->at);
   glm::mat4 Finv = glm::inverse(F);
@@ -112,15 +108,4 @@ void Camera::arcballMoveScreenCoordinates(glm::vec2 m1, glm::vec2 m2)
 
   this->eye = glm::vec3(Finv*R*F*eye);
   this->up = glm::vec3(Finv*R*F*upPoint) - this->eye;
-
-//  this->up = this->eye + this->up;
-//  this->up -= this->at;
-//  this->up = R*this->up;
-//  this->up += this->at;
-//  this->up = this->up - this->eye;
-
-//  this->eye -= this->at;
-//  this->eye = R*this->eye;
-//  this->eye += this->at;
-
 }

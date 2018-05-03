@@ -6,60 +6,59 @@
 #define TINYOBJLOADER_IMPLEMENTATION // define this in only *one* .cc
 #include "tiny_obj_loader.h"
 
-Vertex::Vertex(float x, float y, float z)
-{
-  this->position = glm::vec3(x, y, z);
-  this->halfedge = NULL;
-}
-
-Face::Face()
-{
-  this->halfedge = NULL;
-}
-
-Halfedge::Halfedge()
-{
-  this->vertex = NULL;
-  this->face = NULL;
-  this->next = NULL;
-  this->prev = NULL;
-  this->opposite = NULL;
-}
-
 Mesh::Mesh()
 {
 
 }
 
-void Mesh::avgSmoothing()
+int Mesh::hV(int v)
 {
-  std::vector<glm::vec3> newVerticesPositions;
-  for(int i=0; i<this->vertices.size(); i++)
-  {
-    std::vector<glm::vec3> adjVerticesPositions;
-    Halfedge* startingHalfedge = this->vertices[i]->halfedge;
-    adjVerticesPositions.push_back(startingHalfedge->vertex->position);
-    Halfedge* currentHalfedge = startingHalfedge->prev->opposite;
-    do
-    {
-      adjVerticesPositions.push_back(currentHalfedge->vertex->position);
-      currentHalfedge = currentHalfedge->prev->opposite;
-    }
-    while(currentHalfedge != startingHalfedge);
+  return this->vertices[v].halfedge;
+}
 
-    glm::vec3 avgPosition = glm::vec3(0.0f, 0.0f, 0.0f);
-    for(int j=0; j<adjVerticesPositions.size(); j++)
-    {
-      avgPosition += adjVerticesPositions[j];
-    }
-    avgPosition /= (float) adjVerticesPositions.size();
+int Mesh::hF(int f)
+{
+  return this->faces[f].halfedge;
+}
 
-    newVerticesPositions.push_back(avgPosition);
-  }
-  for(int i=0; i<this->vertices.size(); i++)
-  {
-    this->vertices[i]->position += 0.5f * (newVerticesPositions[i] - this->vertices[i]->position);
-  }
+int Mesh::vH(int h)
+{
+  return this->halfedges[h].vertex;
+}
+
+int Mesh::fH(int h)
+{
+  return this->halfedges[h].face;
+}
+
+int Mesh::nH(int h)
+{
+  return this->halfedges[h].next;
+}
+
+int Mesh::pH(int h)
+{
+  return this->halfedges[h].prev;
+}
+
+int Mesh::oH(int h)
+{
+  return this->halfedges[h].opposite;
+}
+
+Vertex Mesh::newV(glm::vec3 pos)
+{
+  return { pos, -1 };
+}
+
+Face Mesh::newF()
+{
+  return { -1 };
+}
+
+Halfedge Mesh::newH()
+{
+  return { -1, -1, -1, -1, -1 };
 }
 
 void Mesh::loadObj(std::string inputFilePath)
@@ -73,7 +72,6 @@ void Mesh::loadObj(std::string inputFilePath)
 
   if (!err.empty())
   {
-    // `err` may contain warning message.
     qDebug() << err.c_str();
   }
 
@@ -84,215 +82,144 @@ void Mesh::loadObj(std::string inputFilePath)
 
   for(size_t v=0; v < attrib.vertices.size()/3; v++)
   {
-    // qDebug() << v << attrib.vertices.size();
     float vx = attrib.vertices[3*v+0];
     float vy = attrib.vertices[3*v+1];
     float vz = attrib.vertices[3*v+2];
-    this->vertices.push_back(new Vertex(vx, vy, vz));
+    this->vertices.push_back(this->newV(glm::vec3(vx, vy, vz)));
   }
 
   int totalNumVertices = this->vertices.size();
-  // Halfedge** edgesSet = new Halfedge*[totalNumVertices * totalNumVertices];
-  std::map<int, Halfedge*> edgesSet;
+
+  // map from int to halfedge
+  std::map<int, int> edgesSet;
 
   for (size_t s = 0; s < shapes.size(); s++) {
-    // Loop over faces(polygon)
-
-//    for(int vi=0; vi<totalNumVertices; vi++)
-//    {
-//      for(int vj=0; vj<totalNumVertices; vj++)
-//      {
-//        edgesSet[totalNumVertices * vi + vj] = NULL;
-//      }
-//    }
     edgesSet.clear();
 
     size_t index_offset = 0;
     for (size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++) {
-      this->faces.push_back(new Face());
+      this->faces.push_back(this->newF());
       int fv = shapes[s].mesh.num_face_vertices[f];
       int halfEdgeIndex = this->halfedges.size();
       for (size_t v = 0; v < fv; v++) {
-        Halfedge* newHalfEdge = new Halfedge();
-        this->halfedges.push_back(newHalfEdge);
+        int newHalfEdgeIndex = this->halfedges.size();
+        this->halfedges.push_back(this->newH());
         int vertex_idx = shapes[s].mesh.indices[index_offset + v].vertex_index;
-        this->vertices[vertex_idx]->halfedge = newHalfEdge;
-        newHalfEdge->face = this->faces[this->faces.size() - 1];
+        this->vertices[vertex_idx].halfedge = newHalfEdgeIndex;
+        this->halfedges[newHalfEdgeIndex].face = this->faces.size() - 1;
       }
       for (size_t v = 1; v < fv; v++) {
         int vertex_idx = shapes[s].mesh.indices[index_offset + v].vertex_index;
-        this->halfedges[halfEdgeIndex + v - 1]->vertex = this->vertices[vertex_idx];
+        this->halfedges[halfEdgeIndex + v - 1].vertex = vertex_idx;
         int prev_vertex_idx = shapes[s].mesh.indices[index_offset + v - 1].vertex_index;
-        edgesSet[totalNumVertices * prev_vertex_idx + vertex_idx] = this->halfedges[halfEdgeIndex + v - 1];
+        edgesSet[totalNumVertices * prev_vertex_idx + vertex_idx] = halfEdgeIndex + v - 1;
         try
         {
-          this->halfedges[halfEdgeIndex + v - 1]->opposite = edgesSet.at(totalNumVertices * vertex_idx + prev_vertex_idx);
-          edgesSet.at(totalNumVertices * vertex_idx + prev_vertex_idx)->opposite = this->halfedges[halfEdgeIndex + v - 1];
+          this->halfedges[halfEdgeIndex + v - 1].opposite = edgesSet.at(totalNumVertices * vertex_idx + prev_vertex_idx);
+          this->halfedges[edgesSet.at(totalNumVertices * vertex_idx + prev_vertex_idx)].opposite = halfEdgeIndex + v - 1;
         } catch(const std::exception& e) {}
       }
       int vertex_idx = shapes[s].mesh.indices[index_offset + 0].vertex_index;
-      this->halfedges[halfEdgeIndex + fv - 1]->vertex = this->vertices[vertex_idx];
+      this->halfedges[halfEdgeIndex + fv - 1].vertex = vertex_idx;
       int prev_vertex_idx = shapes[s].mesh.indices[halfEdgeIndex + fv - 1].vertex_index;
-      edgesSet[totalNumVertices * prev_vertex_idx + vertex_idx] = this->halfedges[halfEdgeIndex + fv - 1];
+      edgesSet[totalNumVertices * prev_vertex_idx + vertex_idx] = halfEdgeIndex + fv - 1;
       try
       {
-        this->halfedges[halfEdgeIndex + fv - 1]->opposite = edgesSet.at(totalNumVertices * vertex_idx + prev_vertex_idx);
-        edgesSet.at(totalNumVertices * vertex_idx + prev_vertex_idx)->opposite = this->halfedges[halfEdgeIndex + fv - 1];
+        this->halfedges[halfEdgeIndex + fv - 1].opposite = edgesSet.at(totalNumVertices * vertex_idx + prev_vertex_idx);
+        this->halfedges[edgesSet.at(totalNumVertices * vertex_idx + prev_vertex_idx)].opposite = halfEdgeIndex + fv - 1;
       } catch(const std::exception& e) {}
 
       for (size_t v = 1; v < fv - 1; v++) {
-        this->halfedges[halfEdgeIndex + v]->prev = this->halfedges[halfEdgeIndex + v - 1];
-        this->halfedges[halfEdgeIndex + v]->next = this->halfedges[halfEdgeIndex + v + 1];
+        this->halfedges[halfEdgeIndex + v].prev = halfEdgeIndex + v - 1;
+        this->halfedges[halfEdgeIndex + v].next = halfEdgeIndex + v + 1;
       }
-      this->halfedges[halfEdgeIndex]->prev = this->halfedges[halfEdgeIndex + fv - 1];
-      this->halfedges[halfEdgeIndex]->next = this->halfedges[halfEdgeIndex + 1];
-      this->halfedges[halfEdgeIndex + fv - 1]->prev = this->halfedges[halfEdgeIndex + fv - 2];
-      this->halfedges[halfEdgeIndex + fv - 1]->next = this->halfedges[halfEdgeIndex];
+      this->halfedges[halfEdgeIndex].prev = halfEdgeIndex + fv - 1;
+      this->halfedges[halfEdgeIndex].next = halfEdgeIndex + 1;
+      this->halfedges[halfEdgeIndex + fv - 1].prev = halfEdgeIndex + fv - 2;
+      this->halfedges[halfEdgeIndex + fv - 1].next = halfEdgeIndex;
 
-      this->faces[this->faces.size() - 1]->halfedge = this->halfedges[halfEdgeIndex];
+      this->faces[this->faces.size() - 1].halfedge = halfEdgeIndex;
       index_offset += fv;
     }
   }
 }
 
-void Mesh::loadPyramid()
+void Mesh::getTriangles(  std::vector<glm::vec3>* vertices,
+                          std::vector<glm::vec3>* normals,
+                          std::vector<unsigned int>* indices,
+                          bool isFlatFaces)
 {
-  this->vertices.push_back(new Vertex(-1.0f, -1.0f, -1.0f));
-  this->vertices.push_back(new Vertex(1.0f, -1.0f, -1.0f));
-  this->vertices.push_back(new Vertex(1.0f, -1.0f, 1.0f));
-  this->vertices.push_back(new Vertex(-1.0f, -1.0f, 1.0f));
-  this->vertices.push_back(new Vertex(0.0f, 1.0f, 0.0f));
-  for(int i=0; i<5; i++)
-    this->faces.push_back(new Face());
-  for(int i=0; i<16; i++)
-    this->halfedges.push_back(new Halfedge());
-
-  this->vertices[0]->halfedge = this->halfedges[0];
-  this->vertices[1]->halfedge = this->halfedges[1];
-  this->vertices[2]->halfedge = this->halfedges[2];
-  this->vertices[3]->halfedge = this->halfedges[3];
-  this->vertices[4]->halfedge = this->halfedges[6];
-
-  this->faces[0]->halfedge = this->halfedges[0];
-  this->faces[1]->halfedge = this->halfedges[4];
-  this->faces[2]->halfedge = this->halfedges[7];
-  this->faces[3]->halfedge = this->halfedges[10];
-  this->faces[4]->halfedge = this->halfedges[13];
-
-  this->halfedges[0]->vertex = this->vertices[0];
-  this->halfedges[1]->vertex = this->vertices[1];
-  this->halfedges[2]->vertex = this->vertices[2];
-  this->halfedges[3]->vertex = this->vertices[3];
-  this->halfedges[4]->vertex = this->vertices[2];
-  this->halfedges[5]->vertex = this->vertices[1];
-  this->halfedges[6]->vertex = this->vertices[4];
-  this->halfedges[7]->vertex = this->vertices[1];
-  this->halfedges[8]->vertex = this->vertices[0];
-  this->halfedges[9]->vertex = this->vertices[4];
-  this->halfedges[10]->vertex = this->vertices[0];
-  this->halfedges[11]->vertex = this->vertices[3];
-  this->halfedges[12]->vertex = this->vertices[4];
-  this->halfedges[13]->vertex = this->vertices[3];
-  this->halfedges[14]->vertex = this->vertices[2];
-  this->halfedges[15]->vertex = this->vertices[4];
-
-  this->halfedges[0]->face = this->faces[0];
-  this->halfedges[1]->face = this->faces[0];
-  this->halfedges[2]->face = this->faces[0];
-  this->halfedges[3]->face = this->faces[0];
-  this->halfedges[4]->face = this->faces[1];
-  this->halfedges[5]->face = this->faces[1];
-  this->halfedges[6]->face = this->faces[1];
-  this->halfedges[7]->face = this->faces[2];
-  this->halfedges[8]->face = this->faces[2];
-  this->halfedges[9]->face = this->faces[2];
-  this->halfedges[10]->face = this->faces[3];
-  this->halfedges[11]->face = this->faces[3];
-  this->halfedges[12]->face = this->faces[3];
-  this->halfedges[13]->face = this->faces[4];
-  this->halfedges[14]->face = this->faces[4];
-  this->halfedges[15]->face = this->faces[4];
-
-  this->halfedges[0]->next = this->halfedges[1];
-  this->halfedges[1]->next = this->halfedges[2];
-  this->halfedges[2]->next = this->halfedges[3];
-  this->halfedges[3]->next = this->halfedges[0];
-  this->halfedges[4]->next = this->halfedges[5];
-  this->halfedges[5]->next = this->halfedges[6];
-  this->halfedges[6]->next = this->halfedges[4];
-  this->halfedges[7]->next = this->halfedges[8];
-  this->halfedges[8]->next = this->halfedges[9];
-  this->halfedges[9]->next = this->halfedges[7];
-  this->halfedges[10]->next = this->halfedges[11];
-  this->halfedges[11]->next = this->halfedges[12];
-  this->halfedges[12]->next = this->halfedges[10];
-  this->halfedges[13]->next = this->halfedges[14];
-  this->halfedges[14]->next = this->halfedges[15];
-  this->halfedges[15]->next = this->halfedges[13];
-
-  this->halfedges[0]->prev = this->halfedges[3];
-  this->halfedges[1]->prev = this->halfedges[0];
-  this->halfedges[2]->prev = this->halfedges[1];
-  this->halfedges[3]->prev = this->halfedges[2];
-  this->halfedges[4]->prev = this->halfedges[6];
-  this->halfedges[5]->prev = this->halfedges[4];
-  this->halfedges[6]->prev = this->halfedges[5];
-  this->halfedges[7]->prev = this->halfedges[9];
-  this->halfedges[8]->prev = this->halfedges[7];
-  this->halfedges[9]->prev = this->halfedges[8];
-  this->halfedges[10]->prev = this->halfedges[12];
-  this->halfedges[11]->prev = this->halfedges[10];
-  this->halfedges[12]->prev = this->halfedges[11];
-  this->halfedges[13]->prev = this->halfedges[15];
-  this->halfedges[14]->prev = this->halfedges[13];
-  this->halfedges[15]->prev = this->halfedges[14];
-
-  this->halfedges[0]->opposite = this->halfedges[7];
-  this->halfedges[1]->opposite = this->halfedges[4];
-  this->halfedges[2]->opposite = this->halfedges[13];
-  this->halfedges[3]->opposite = this->halfedges[10];
-  this->halfedges[4]->opposite = this->halfedges[1];
-  this->halfedges[5]->opposite = this->halfedges[9];
-  this->halfedges[6]->opposite = this->halfedges[14];
-  this->halfedges[7]->opposite = this->halfedges[0];
-  this->halfedges[8]->opposite = this->halfedges[12];
-  this->halfedges[9]->opposite = this->halfedges[5];
-  this->halfedges[10]->opposite = this->halfedges[3];
-  this->halfedges[11]->opposite = this->halfedges[15];
-  this->halfedges[12]->opposite = this->halfedges[8];
-  this->halfedges[13]->opposite = this->halfedges[2];
-  this->halfedges[14]->opposite = this->halfedges[6];
-  this->halfedges[15]->opposite = this->halfedges[11];
-}
-
-void Mesh::getTriangles(std::vector<glm::vec3>* vertices, std::vector<glm::vec3>* normals, std::vector<unsigned int>* indices)
-{
-  for(int i=0; i<this->faces.size(); i++)
+  if (isFlatFaces)
   {
-    Halfedge* he = this->faces[i]->halfedge;
-
-    Vertex* v1 = he->vertex;
-    Vertex* v2 = he->next->vertex;
-    Vertex* v3 = he->next->next->vertex;
-    glm::vec3 normal = glm::normalize(glm::cross(v2->position - v1->position, v3->position - v1->position));
-
-    Halfedge* he_i = he;
-    int numVertices = 0;
-    int vertexInitialIndex = vertices->size();
-    do
+    for(int f=0; f<this->faces.size(); f++)
     {
-      vertices->push_back(he_i->vertex->position);
-      normals->push_back(normal);
-      he_i = he_i->next;
-      numVertices++;
-    }
-    while(he_i != he);
+      glm::vec3 normal = this->getFaceNormal(f);
 
-    for(int j=0; j<numVertices - 2; j++)
-    {
-      indices->push_back(vertexInitialIndex);
-      indices->push_back(vertexInitialIndex+j+1);
-      indices->push_back(vertexInitialIndex+j+2);
+      int h = hF(f);
+      int numVertices = 0;
+      int vertexInitialIndex = vertices->size();
+      do
+      {
+        vertices->push_back(this->vertices[vH(h)].position);
+        normals->push_back(normal);
+        h = nH(h);
+        numVertices++;
+      }
+      while(h != hF(f));
+
+      for(int j=0; j<numVertices - 2; j++)
+      {
+        indices->push_back(vertexInitialIndex);
+        indices->push_back(vertexInitialIndex+j+1);
+        indices->push_back(vertexInitialIndex+j+2);
+      }
     }
   }
+  else
+  {
+    for(int v=0; v < this->vertices.size(); v++)
+    {
+      vertices->push_back(this->vertices[v].position);
+      normals->push_back(this->getVertexNormal(v));
+    }
+    for(int f=0; f < this->faces.size(); f++)
+    {
+      indices->push_back(vH(hF(f)));
+      indices->push_back(vH(nH(hF(f))));
+      indices->push_back(vH(nH(nH(hF(f)))));
+    }
+  }
+
+}
+
+glm::vec3 Mesh::getFaceNormal(int f)
+{
+  Vertex v1 = this->vertices[vH(hF(f))];
+  Vertex v2 = this->vertices[vH(nH(hF(f)))];
+  Vertex v3 = this->vertices[vH(nH(nH(hF(f))))];
+  return glm::normalize(glm::cross(v2.position - v1.position, v3.position - v1.position));
+}
+
+glm::vec3 Mesh::getVertexNormal(int v)
+{
+  glm::vec3 normal;
+  std::vector<int> faces = this->getVertexFacesIndexes(v);
+  for(int i=0; i < faces.size(); i++)
+  {
+    normal += this->getFaceNormal(faces[i]) / ((float) faces.size());
+  }
+  return normal;
+}
+
+std::vector<int> Mesh::getVertexFacesIndexes(int v)
+{
+  std::vector<int> output;
+  int hi = hV(v);
+  do
+  {
+    output.push_back(fH(hi));
+    hi = oH(pH(hi));
+  }
+  while(hi != hV(v));
+  return output;
 }

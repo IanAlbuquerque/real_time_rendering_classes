@@ -2,6 +2,7 @@
 #define RENDERWIDGET_H
 
 #include <QOpenGLWidget>
+#include <QImage>
 #include <QOpenGLExtraFunctions>
 #include <QOpenGLShaderProgram>
 #include <QVector3D>
@@ -21,6 +22,19 @@ public:
     RenderWidget(QWidget* parent);
     virtual ~RenderWidget();
 
+    void importOBJFromPath(char* path);
+    void importDiffuseTexture(QImage img);
+    void importBumpMap(QImage img);
+
+    void resetCamera();
+
+    void setWireframeOverwrite(bool value);
+    void setEdgesVisible(bool value);
+    void setFlatFaces(bool value);
+    void setDiffuseTextureActive(bool value);
+    void setBumMapActive(bool value);
+    void setDiffuseColor(float r, float g, float b);
+
 private:
     virtual void initializeGL();
     virtual void paintGL();
@@ -33,17 +47,32 @@ private:
     virtual void keyPressEvent(QKeyEvent *event);
     virtual void keyReleaseEvent(QKeyEvent *event);
 
-    void createCube();
-    void createVBO();
+    void createBuffers( unsigned int* VAO,
+                        unsigned int* VBO,
+                        unsigned int* EBO);
+
+    void loadBuffers( unsigned int VAO,
+                      unsigned int VBO,
+                      unsigned int EBO,
+                      std::vector<glm::vec3>& positions,
+                      std::vector<glm::vec3>& normals,
+                      std::vector<unsigned int>& indices);
+
+    void createTexture(unsigned int* textureID);
+
+    void loadTexture(unsigned int textureID, QImage img);
+
+    void reloadMesh();
 
     QOpenGLShaderProgram* program;
 
     unsigned int VAO;
     unsigned int VBO;
     unsigned int EBO;
-    std::vector< glm::vec3 > vertices;
-    std::vector< glm::vec3 > normals;
-    std::vector< unsigned int > indices;
+    unsigned int countElements;
+
+    unsigned int DIFFUSE_TEXTURE_2D;
+    unsigned int BUMP_TEXTURE_2D;
 
     Camera* camera;
     glm::mat4x4 model;
@@ -55,8 +84,13 @@ private:
     glm::vec2 lastPanScreenCoordinates;
     bool isPanMovementActive;
 
-    bool hasWireframe;
-    bool hasOcclusion;
+    bool isWireframeOverwrite;
+    bool isEdgesVisible;
+    bool isFlatFaces;
+    bool isDiffuseTextureActive;
+    bool isBumMapActive;
+
+    glm::vec3 diffuseColor;
 
     Mesh* mesh;
 };

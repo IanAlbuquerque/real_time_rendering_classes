@@ -1,7 +1,11 @@
 #version 460 core
 
-uniform bool hasWireframe;
-uniform bool hasOcclusion;
+uniform bool isWireframeOverwrite;
+uniform bool isEdgesVisible;
+uniform bool isFlatFaces;
+uniform bool isDiffuseTextureActive;
+uniform bool isBumMapActive;
+uniform vec3 diffuseColor;
 
 in vec3 fragmentPositionVSpace;
 in vec3 fragmentNormalVSpace;
@@ -11,19 +15,19 @@ out vec3 finalColor;
 
 void main()
 {
-    if(hasWireframe && (fragmentTriangleCoordinate.x < 0.01 || fragmentTriangleCoordinate.y < 0.01 || fragmentTriangleCoordinate.z < 0.01))
+    if((isWireframeOverwrite || isEdgesVisible) && (fragmentTriangleCoordinate.x < 0.01 || fragmentTriangleCoordinate.y < 0.01 || fragmentTriangleCoordinate.z < 0.01))
     {
         finalColor = vec3(1, 1, 1);
         return;
     }
-    if(hasWireframe && !hasOcclusion)
+    if(isWireframeOverwrite)
     {
         discard;
         return;
     }
 
     vec3 lightPositionVSpace = vec3(0.0, 0.0, 0.0);
-    vec3 materialDiffuse = vec3(1.0, 0.0, 0.0);
+    vec3 materialDiffuse = diffuseColor;
     vec3 materialSpecular = vec3(1.0, 1.0, 1.0);
 
     float materialShininess = 24.0;

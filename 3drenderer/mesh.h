@@ -5,55 +5,55 @@
 #include <vector>
 #include <string>
 
-class Vertex;
-class Face;
-class Halfedge;
-class Mesh;
-
-class Vertex
+struct Vertex
 {
-friend class Mesh;
-private:
   glm::vec3 position;
-  Halfedge *halfedge;
-public:
-  Vertex(float x, float y, float z);
+  // outgoing halfedge
+  int halfedge;
 };
 
-class Face
+struct Face
 {
-friend class Mesh;
-private:
-  Halfedge *halfedge;
-public:
-  Face();
+  // one of its halfedges
+  int halfedge;
 };
 
-class Halfedge
+struct Halfedge
 {
-friend class Mesh;
-private:
-  Vertex *vertex;
-  Face *face;
-  Halfedge *next;
-  Halfedge *prev;
-  Halfedge *opposite;
-public:
-  Halfedge();
+  // vertex it points
+  int vertex;
+  int face;
+  int next;
+  int prev;
+  int opposite;
 };
 
 class Mesh
 {
 private:
-   std::vector<Vertex*> vertices;
-   std::vector<Face*> faces;
-   std::vector<Halfedge*> halfedges;
+  std::vector<Vertex> vertices;
+  std::vector<Face> faces;
+  std::vector<Halfedge> halfedges;
+
+  Vertex newV(glm::vec3 pos);
+  Face newF();
+  Halfedge newH();
+
+  int  hV(int v);
+  int  hF(int f);
+  int  vH(int h);
+  int  fH(int h);
+  int  nH(int h);
+  int  pH(int h);
+  int  oH(int h);
+
+  std::vector<int> getVertexFacesIndexes(int v);
+  glm::vec3 getFaceNormal(int f);
+  glm::vec3 getVertexNormal(int v);
 public:
   Mesh();
-  void loadPyramid();
-  void getTriangles(std::vector<glm::vec3>* vertices, std::vector<glm::vec3>* normals, std::vector<unsigned int>* indices);
+  void getTriangles(std::vector<glm::vec3>* vertices, std::vector<glm::vec3>* normals, std::vector<unsigned int>* indices, bool isFlatFaces);
   void loadObj(std::string inputFilePath);
-  void avgSmoothing();
 };
 
 #endif // TRIANGLEMESH_H
