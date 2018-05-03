@@ -78,8 +78,31 @@ MainWindow::MainWindow(QWidget *parent) :
                 this,
                 SLOT(onChangeShininess(double)));
 
+  this->connect(this->ui->radioButtonSpherical,
+                SIGNAL(clicked(bool)),
+                this,
+                SLOT(onClickSphericalMapping(bool)));
+
+  this->connect(this->ui->radioButtonCube,
+                SIGNAL(clicked(bool)),
+                this,
+                SLOT(onClickCubeMapping(bool)));
+
   this->sendDiffuseColorToOpenGL();
   this->ui->openGLWidget->setShininess(this->ui->spinBoxShininess->value());
+}
+
+
+void MainWindow::onClickSphericalMapping(bool value)
+{
+  if(value)
+    this->ui->openGLWidget->setSphericalMapping(true);
+}
+
+void MainWindow::onClickCubeMapping(bool value)
+{
+  if(value)
+    this->ui->openGLWidget->setSphericalMapping(false);
 }
 
 void MainWindow::onImportOBJClick(bool isClicked)

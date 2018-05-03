@@ -38,6 +38,9 @@ public slots:
     void onChangeDiffuseColorB(double b);
 
     void onChangeShininess(double s);
+
+    void onClickSphericalMapping(bool value);
+    void onClickCubeMapping(bool value);
 };
 
 #endif // MAINWINDOW_H

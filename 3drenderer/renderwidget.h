@@ -35,6 +35,7 @@ public:
     void setBumMapActive(bool value);
     void setDiffuseColor(float r, float g, float b);
     void setShininess(float s);
+    void setSphericalMapping(bool v);
 
 private:
     virtual void initializeGL();
@@ -103,6 +104,7 @@ private:
 
     glm::vec3 diffuseColor;
     float materialShininess;
+    bool isSphericalMapping;
 
     Mesh* mesh;
 };

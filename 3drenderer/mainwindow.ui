@@ -134,6 +134,26 @@
          </widget>
         </item>
         <item>
+         <widget class="QRadioButton" name="radioButtonSpherical">
+          <property name="text">
+           <string>Spherical UV Mapping</string>
+          </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QRadioButton" name="radioButtonCube">
+          <property name="text">
+           <string>Cube UV Mapping</string>
+          </property>
+          <property name="checked">
+           <bool>false</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
          <spacer name="verticalSpacer">
           <property name="orientation">
            <enum>Qt::Vertical</enum>

@@ -12,6 +12,7 @@
 #include "camera.h"
 #include "mesh.h"
 #include "uvsphericalwrapper.h"
+#include "uvcubewrapper.h"
 
 #include <cmath>
 #ifndef M_PI
@@ -36,6 +37,7 @@ RenderWidget::RenderWidget(QWidget *parent)
 
   this->diffuseColor = glm::vec3(0.0f, 0.0f, 0.0f);
   this->materialShininess = 24.0f;
+  this->isSphericalMapping = true;
 }
 
 
@@ -416,9 +418,11 @@ void RenderWidget::reloadMesh()
   this->countElements = indices.size();
 
   UVSphericalWrapper uvSphericalWrapper;
+  UVCubeWrapper uvCubeWrapper;
+  uvCubeWrapper.runBoundingBox(positions);
   for(int i=0; i<positions.size(); i++)
   {
-    glm::vec2 uv = uvSphericalWrapper.uv(positions[i]);
+    glm::vec2 uv = this->isSphericalMapping ? uvSphericalWrapper.uv(positions[i]) : uvCubeWrapper.uv(positions[i]);
     UVs.push_back(uv);
   }
 
@@ -461,6 +465,12 @@ void RenderWidget::setShininess(float s)
 {
   this->materialShininess = s;
   this->update();
+}
+
+void RenderWidget::setSphericalMapping(bool v)
+{
+   this->isSphericalMapping = v;
+   this->reloadMesh();
 }
 
 void RenderWidget::computeTangentBasis( std::vector<glm::vec3> & positions,
