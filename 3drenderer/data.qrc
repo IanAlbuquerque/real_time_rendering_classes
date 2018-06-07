@@ -1,8 +1,10 @@
 <RCC>
     <qresource prefix="/shaders">
-        <file>fragmentshader.glsl</file>
-        <file>geometryshader.glsl</file>
-        <file>vertexshader.glsl</file>
+        <file>geometry-fragmentshader.glsl</file>
+        <file>geometry-geometryshader.glsl</file>
+        <file>geometry-vertexshader.glsl</file>
+        <file>light-fragmentshader.glsl</file>
+        <file>light-vertexshader.glsl</file>
     </qresource>
     <qresource prefix="/textures"/>
     <qresource prefix="/imgs">

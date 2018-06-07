@@ -13,6 +13,7 @@
 #include "glm/glm.hpp"
 #include "camera.h"
 #include "mesh.h"
+#include "framebuffers.h"
 
 class RenderWidget
         : public QOpenGLWidget
@@ -41,6 +42,8 @@ private:
     virtual void initializeGL();
     virtual void paintGL();
     virtual void resizeGL(int w, int h);
+
+    virtual void geometryPass();
 
     virtual void mousePressEvent(QMouseEvent *event);
     virtual void mouseReleaseEvent(QMouseEvent *event);
@@ -76,7 +79,7 @@ private:
                             std::vector<glm::vec3>& tangents,
                             std::vector<glm::vec3>& bitangents);
 
-    QOpenGLShaderProgram* program;
+    QOpenGLShaderProgram* geometryProgram;
 
     unsigned int VAO;
     unsigned int VBO;
@@ -85,6 +88,8 @@ private:
 
     unsigned int DIFFUSE_TEXTURE_2D;
     unsigned int BUMP_TEXTURE_2D;
+
+    FrameBuffers* frameBuffers;
 
     Camera* camera;
     glm::mat4x4 model;

@@ -35,7 +35,8 @@ HEADERS += \
     tiny_obj_loader.h \
     uvwrapper.h \
     uvsphericalwrapper.h \
-    uvcubewrapper.h
+    uvcubewrapper.h \
+    framebuffers.h
 
 SOURCES += \
     renderwidget.cpp \
@@ -45,7 +46,8 @@ SOURCES += \
     mesh.cpp \
     uvwrapper.cpp \
     uvsphericalwrapper.cpp \
-    uvcubewrapper.cpp
+    uvcubewrapper.cpp \
+    framebuffers.cpp
 
 RESOURCES += \
     data.qrc

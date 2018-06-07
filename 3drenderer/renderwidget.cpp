@@ -21,7 +21,7 @@
 
 RenderWidget::RenderWidget(QWidget *parent)
     : QOpenGLWidget(parent)
-    , program(nullptr)
+    , geometryProgram(nullptr)
 {
   this->setFocusPolicy(Qt::StrongFocus);
   this->isArcballMovementActive = false;
@@ -38,14 +38,16 @@ RenderWidget::RenderWidget(QWidget *parent)
   this->diffuseColor = glm::vec3(0.0f, 0.0f, 0.0f);
   this->materialShininess = 24.0f;
   this->isSphericalMapping = true;
+
 }
 
 
 RenderWidget::~RenderWidget()
 {
-  delete this->program;
+  delete this->geometryProgram;
   delete this->camera;
   delete this->mesh;
+  delete this->frameBuffers;
 
   this->glDeleteVertexArrays(1, &VAO);
   this->glDeleteBuffers(1, &VBO);
@@ -56,17 +58,19 @@ RenderWidget::~RenderWidget()
 void RenderWidget::initializeGL()
 {
   this->initializeOpenGLFunctions();
+  this->frameBuffers = new FrameBuffers(this->context());
 
   this->glEnable(GL_DEPTH_TEST);
 
   this->glClearColor(0, 0, 0, 1);
   this->glViewport(0, 0, width(), height());
+  this->frameBuffers->init(width(), height());
 
-  this->program = new QOpenGLShaderProgram();
-  this->program->addShaderFromSourceFile(QOpenGLShader::Vertex, ":/shaders/vertexshader.glsl");
-  this->program->addShaderFromSourceFile(QOpenGLShader::Geometry, ":/shaders/geometryshader.glsl");
-  this->program->addShaderFromSourceFile(QOpenGLShader::Fragment, ":/shaders/fragmentshader.glsl");
-  this->program->link();
+  this->geometryProgram = new QOpenGLShaderProgram();
+  this->geometryProgram->addShaderFromSourceFile(QOpenGLShader::Vertex, ":/shaders/geometry-vertexshader.glsl");
+  this->geometryProgram->addShaderFromSourceFile(QOpenGLShader::Geometry, ":/shaders/geometry-geometryshader.glsl");
+  this->geometryProgram->addShaderFromSourceFile(QOpenGLShader::Fragment, ":/shaders/geometry-fragmentshader.glsl");
+  this->geometryProgram->link();
 
   this->createBuffers(&(this->VAO),
                       &(this->VBO),
@@ -76,20 +80,23 @@ void RenderWidget::initializeGL()
   this->createTexture(&(this->BUMP_TEXTURE_2D));              
 }
 
-
 void RenderWidget::paintGL()
+{
+  this->geometryPass();
+}
+
+void RenderWidget::geometryPass()
 {
   this->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   this->glBindVertexArray(this->VAO);
   this->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->EBO);
 
-  this->program->bind();
+  this->geometryProgram->bind();
 
   this->view = this->camera->getViewMatrix();
   this->proj = this->camera->getProjectionMatrix();
   this->model = glm::mat4();
-  //  this->model = glm::scale(this->model, glm::vec3(10.0f, 10.0f, 10.0f));
 
   QMatrix4x4 m(glm::value_ptr(glm::transpose(this->model)));
   QMatrix4x4 v(glm::value_ptr(glm::transpose(this->view)));
@@ -97,30 +104,30 @@ void RenderWidget::paintGL()
 
   QMatrix4x4 mv = v * m;
   QMatrix4x4 mvp = p * mv;
-  this->program->setUniformValue("mv", mv);
-  this->program->setUniformValue("mv_ti", mv.inverted().transposed());
-  this->program->setUniformValue("mvp", mvp);
+  this->geometryProgram->setUniformValue("mv", mv);
+  this->geometryProgram->setUniformValue("mv_ti", mv.inverted().transposed());
+  this->geometryProgram->setUniformValue("mvp", mvp);
 
-  this->program->setUniformValue("isWireframeOverwrite", this->isWireframeOverwrite);
-  this->program->setUniformValue("isEdgesVisible", this->isEdgesVisible);
-  this->program->setUniformValue("isFlatFaces", this->isFlatFaces);
-  this->program->setUniformValue("isDiffuseTextureActive", this->isDiffuseTextureActive);
-  this->program->setUniformValue("isBumpMapActive", this->isBumpMapActive);
+  this->geometryProgram->setUniformValue("isWireframeOverwrite", this->isWireframeOverwrite);
+  this->geometryProgram->setUniformValue("isEdgesVisible", this->isEdgesVisible);
+  this->geometryProgram->setUniformValue("isFlatFaces", this->isFlatFaces);
+  this->geometryProgram->setUniformValue("isDiffuseTextureActive", this->isDiffuseTextureActive);
+  this->geometryProgram->setUniformValue("isBumpMapActive", this->isBumpMapActive);
 
   
   this->glActiveTexture(GL_TEXTURE0);
   this->glBindTexture(GL_TEXTURE_2D, this->DIFFUSE_TEXTURE_2D);
-  this->program->setUniformValue("diffuseTextureSampler", 0);
+  this->geometryProgram->setUniformValue("diffuseTextureSampler", 0);
 
   this->glActiveTexture(GL_TEXTURE1);
   this->glBindTexture(GL_TEXTURE_2D, this->BUMP_TEXTURE_2D);
-  this->program->setUniformValue("bumpMapSampler", 1);
+  this->geometryProgram->setUniformValue("bumpMapSampler", 1);
 
-  this->program->setUniformValue("diffuseColor", QVector3D( this->diffuseColor[0],
+  this->geometryProgram->setUniformValue("diffuseColor", QVector3D( this->diffuseColor[0],
                                                             this->diffuseColor[1],
                                                             this->diffuseColor[2]));
 
-  this->program->setUniformValue("materialShininess", this->materialShininess);
+  this->geometryProgram->setUniformValue("materialShininess", this->materialShininess);
 
   this->glDrawElements( GL_TRIANGLES,
                         (GLsizei) this->countElements,
