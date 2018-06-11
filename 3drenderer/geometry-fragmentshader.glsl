@@ -12,6 +12,8 @@ uniform float materialShininess;
 uniform sampler2D diffuseTextureSampler;
 uniform sampler2D bumpMapSampler;
 
+// geometry-fragment-shader
+
 in vec3 fragmentPositionVSpace;
 in vec3 fragmentNormalVSpace;
 in vec3 fragmentTangentVSpace;

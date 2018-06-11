@@ -24,11 +24,10 @@ public:
   void bindForReading();
   void setReadBuffer(FRAMEBUFFER_TEXTURE_TYPE textureType);
 
+private:
   GLuint fbo;
   GLuint textures[FRAMEBUFFER_NUM_TEXTURES];
   GLuint depthTexture;
-
-private:
 };
 
 #endif // FRAMEBUFFERS_H

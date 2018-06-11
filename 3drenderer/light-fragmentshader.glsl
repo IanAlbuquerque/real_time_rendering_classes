@@ -1,62 +1,66 @@
 #version 460 core
 
+// light-fragment-shader
+
+//uniform sampler2D diffuseTextureSampler;
+//uniform sampler2D bumpMapSampler;
+
 uniform bool isWireframeOverwrite;
 uniform bool isEdgesVisible;
-uniform bool isFlatFaces;
-uniform bool isDiffuseTextureActive;
-uniform bool isBumpMapActive;
 
-uniform vec3 diffuseColor;
-uniform float materialShininess;
+//uniform vec3 lightsColors[32];
 
-uniform sampler2D diffuseTextureSampler;
-uniform sampler2D bumpMapSampler;
+in vec2 TexCoords;
 
-in vec3 fragmentPositionVSpace;
-in vec3 fragmentNormalVSpace;
-in vec3 fragmentTangentVSpace;
-in vec3 fragmentBitangentVSpace;
-in vec3 fragmentTriangleCoordinate;
-in vec2 fragmentUV;
+uniform sampler2D positionTextureSampler;
+uniform sampler2D normalTextureSampler;
+uniform sampler2D triangleCoordinatesTextureSampler;
+uniform sampler2D textureCoordinatesTextureSampler;
+uniform sampler2D materialAmbientTextureSampler;
+uniform sampler2D materialDiffuseTextureSampler;
+uniform sampler2D materialSpecularTextureSampler;
 
-layout (location = 0) out vec3 WorldPosOut;
-layout (location = 1) out vec3 NormalOut;
-layout (location = 2) out vec3 TriangleCoordinatesOut;
-layout (location = 3) out vec3 TexCoordOut;
-layout (location = 4) out vec3 MaterialAmbientOut;
-layout (location = 5) out vec3 MaterialDiffuseOut;
-layout (location = 6) out vec3 MaterialSpecularOut;
-
+out vec3 finalColor;
 
 void main()
 {
+    vec3 position = texture(positionTextureSampler, TexCoords).rgb;
+    vec3 triangleCoordinate = texture(triangleCoordinatesTextureSampler, TexCoords).rgb;
+    if((isWireframeOverwrite || isEdgesVisible) &&
+       (triangleCoordinate.x < 0.01 || triangleCoordinate.y < 0.01 || triangleCoordinate.z < 0.01))
+    {
+        finalColor = vec3(1, 1, 1);
+        return;
+    }
+    if(isWireframeOverwrite)
+    {
+        discard;
+        return;
+    }
+
+
     vec3 lightPositionVSpace = vec3(0.0, 0.0, 0.0);
 
-    vec3 materialAmbient = diffuseColor;
-    vec3 materialDiffuse = diffuseColor;
-    vec3 materialSpecular = vec3(1.0, 1.0, 1.0);
+    vec3 materialAmbient = texture(materialAmbientTextureSampler, TexCoords).rgb;
+    vec3 materialDiffuse = texture(materialDiffuseTextureSampler, TexCoords).rgb;
+    vec3 materialSpecular = texture(materialSpecularTextureSampler, TexCoords).rgb;
 
-    if(isDiffuseTextureActive)
-    {
-      materialAmbient = texture(diffuseTextureSampler, fragmentUV).bgr;
-      materialDiffuse = texture(diffuseTextureSampler, fragmentUV).bgr;
-    }
+    vec3 N = texture(normalTextureSampler, TexCoords).rgb;
+    vec3 L = normalize((lightPositionVSpace - position));
 
-    vec3 N = normalize(fragmentNormalVSpace);
+    float incidence = dot(L, N);
 
-    if(isBumpMapActive)
-    {
-      vec3 bump = ((texture(bumpMapSampler, fragmentUV).bgr * 2.0) - 1.0);
-      N = bump.r * fragmentTangentVSpace +
-          bump.g * fragmentBitangentVSpace +
-          bump.b * fragmentNormalVSpace;
-    }
+    // AMBIENT
+    vec3 ambient = vec3(0.1, 0.1, 0.1) * materialAmbient;
 
-    WorldPosOut = fragmentPositionVSpace;
-    NormalOut = N;
-    TriangleCoordinatesOut = fragmentTriangleCoordinate;
-    TexCoordOut = fragmentUV;
-    MaterialAmbientOut = materialAmbient;
-    MaterialDiffuseOut = materialDiffuse;
-    MaterialSpecularOut = materialSpecular;
+    // DIFUSE
+    vec3 diffuse = incidence * materialDiffuse;
+
+    // SPECULAR
+    vec3 V = normalize((vec3(0.0, 0.0, 0.0) - position));
+    vec3 H = normalize(L + V);
+    float specualarFactor = pow(max(dot(N,H),0.0), 32.0);
+    vec3 specular = specualarFactor * materialSpecular;
+
+    finalColor = ambient + diffuse + specular;
 }

@@ -22,6 +22,7 @@
 RenderWidget::RenderWidget(QWidget *parent)
     : QOpenGLWidget(parent)
     , geometryProgram(nullptr)
+    , lightProgram(nullptr)
 {
   this->setFocusPolicy(Qt::StrongFocus);
   this->isArcballMovementActive = false;
@@ -47,7 +48,7 @@ RenderWidget::~RenderWidget()
   delete this->geometryProgram;
   delete this->camera;
   delete this->mesh;
-  delete this->frameBuffers;
+//  delete this->frameBuffers;
 
   this->glDeleteVertexArrays(1, &VAO);
   this->glDeleteBuffers(1, &VBO);
@@ -58,9 +59,7 @@ RenderWidget::~RenderWidget()
 void RenderWidget::initializeGL()
 {
   this->initializeOpenGLFunctions();
-  this->frameBuffers = new FrameBuffers(this->context());
-
-  this->glEnable(GL_DEPTH_TEST);
+  this->frameBuffers = new FrameBuffers();
 
   this->glClearColor(0, 0, 0, 1);
   this->glViewport(0, 0, width(), height());
@@ -72,27 +71,134 @@ void RenderWidget::initializeGL()
   this->geometryProgram->addShaderFromSourceFile(QOpenGLShader::Fragment, ":/shaders/geometry-fragmentshader.glsl");
   this->geometryProgram->link();
 
+  this->lightProgram = new QOpenGLShaderProgram();
+  this->lightProgram->addShaderFromSourceFile(QOpenGLShader::Vertex, ":/shaders/light-vertexshader.glsl");
+  this->lightProgram->addShaderFromSourceFile(QOpenGLShader::Fragment, ":/shaders/light-fragmentshader.glsl");
+  this->lightProgram->link();
+
   this->createBuffers(&(this->VAO),
                       &(this->VBO),
                       &(this->EBO));
   this->countElements = 0;        
   this->createTexture(&(this->DIFFUSE_TEXTURE_2D));
-  this->createTexture(&(this->BUMP_TEXTURE_2D));              
+  this->createTexture(&(this->BUMP_TEXTURE_2D));
+
+  this->setupLightQuad();
+  qDebug() << "init";
 }
 
 void RenderWidget::paintGL()
 {
-  this->geometryPass();
+  qDebug() << "paintGL";
+  this->geometryPassPaint();
+  this->lightPassPaint();
 }
 
-void RenderWidget::geometryPass()
+void RenderWidget::lightPassPaint()
 {
+  this->glBindFramebuffer(GL_FRAMEBUFFER, 0);
+//  this->glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+
+  this->lightProgram->bind();
+  this->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+//  this->frameBuffers->bindForReading();
+
+  GLsizei width = this->width();
+  GLsizei height = this->height();
+  GLsizei halfWidth = (GLsizei)(width / 2.0f);
+  GLsizei halfHeight = (GLsizei)(height / 2.0f);
+
+  this->lightProgram->setUniformValue("isWireframeOverwrite", this->isWireframeOverwrite);
+  this->lightProgram->setUniformValue("isEdgesVisible", this->isEdgesVisible);
+
+  this->glActiveTexture(GL_TEXTURE0);
+  this->frameBuffers->setReadBuffer(FrameBuffers::FRAMEBUFFER_TEXTURE_TYPE_POSITION);
+  this->lightProgram->setUniformValue("positionTextureSampler", 0);
+
+
+//  this->glActiveTexture(GL_TEXTURE0);
+//  this->glBindTexture(GL_TEXTURE_2D, this->DIFFUSE_TEXTURE_2D);
+//  this->lightProgram->setUniformValue("positionTextureSampler", 0);
+
+  this->glActiveTexture(GL_TEXTURE1);
+  this->frameBuffers->setReadBuffer(FrameBuffers::FRAMEBUFFER_TEXTURE_TYPE_NORMAL);
+  this->lightProgram->setUniformValue("normalTextureSampler", 1);
+
+  this->glActiveTexture(GL_TEXTURE2);
+  this->frameBuffers->setReadBuffer(FrameBuffers::FRAMEBUFFER_TEXTURE_TYPE_TRIANGLE_COORDINATES);
+  this->lightProgram->setUniformValue("triangleCoordinatesTextureSampler", 2);
+
+  this->glActiveTexture(GL_TEXTURE3);
+  this->frameBuffers->setReadBuffer(FrameBuffers::FRAMEBUFFER_TEXTURE_TYPE_TEXTURE_COORDINATES);
+  this->lightProgram->setUniformValue("textureCoordinatesTextureSampler", 3);
+
+  this->glActiveTexture(GL_TEXTURE4);
+  this->frameBuffers->setReadBuffer(FrameBuffers::FRAMEBUFFER_TEXTURE_TYPE_MATERIAL_AMBIENT);
+  this->lightProgram->setUniformValue("materialAmbientTextureSampler", 4);
+
+  this->glActiveTexture(GL_TEXTURE5);
+  this->frameBuffers->setReadBuffer(FrameBuffers::FRAMEBUFFER_TEXTURE_TYPE_MATERIAL_DIFFUSE);
+  this->lightProgram->setUniformValue("materialDiffuseTextureSampler", 5);
+
+  this->glActiveTexture(GL_TEXTURE6);
+  this->frameBuffers->setReadBuffer(FrameBuffers::FRAMEBUFFER_TEXTURE_TYPE_MATERIAL_SPECULAR);
+  this->lightProgram->setUniformValue("materialSpecularTextureSampler", 6);
+
+
+//   this->frameBuffers->setReadBuffer(FrameBuffers::FRAMEBUFFER_TEXTURE_TYPE_POSITION);
+//   this->glBlitFramebuffer(0, 0, width, height,
+//                   0, 0, halfWidth, halfHeight, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+
+//   this->frameBuffers->setReadBuffer(FrameBuffers::FRAMEBUFFER_TEXTURE_TYPE_NORMAL);
+//   this->glBlitFramebuffer(0, 0, width, height,
+//                   0, halfHeight, halfWidth, height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+
+//   this->frameBuffers->setReadBuffer(FrameBuffers::FRAMEBUFFER_TEXTURE_TYPE_TRIANGLE_COORDINATES);
+//   this->glBlitFramebuffer(0, 0, width, height,
+//                   halfWidth, halfHeight, width, height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+
+//   this->frameBuffers->setReadBuffer(FrameBuffers::FRAMEBUFFER_TEXTURE_TYPE_TEXTURE_COORDINATES);
+//   this->glBlitFramebuffer(0, 0, width, height,
+//                   halfWidth, 0, width, halfHeight, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+
+//   this->frameBuffers->setReadBuffer(FrameBuffers::FRAMEBUFFER_TEXTURE_TYPE_MATERIAL_AMBIENT);
+//   this->glBlitFramebuffer(0, 0, width, height,
+//                   halfWidth, halfHeight, width, height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+
+//   this->frameBuffers->setReadBuffer(FrameBuffers::FRAMEBUFFER_TEXTURE_TYPE_MATERIAL_DIFFUSE);
+//   this->glBlitFramebuffer(0, 0, width, height,
+//                   halfWidth, halfHeight, width, height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+
+//   this->frameBuffers->setReadBuffer(FrameBuffers::FRAMEBUFFER_TEXTURE_TYPE_MATERIAL_SPECULAR);
+//   this->glBlitFramebuffer(0, 0, width, height,
+//                   halfWidth, halfHeight, width, height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+
+  this->glBindVertexArray(this->quadVAO);
+  qDebug() << "gonna render";
+  this->glDrawArrays(GL_TRIANGLES, (GLint) 0, (GLsizei) 6);
+  qDebug() << "rendered";
+
+//  glBindFramebuffer(GL_READ_FRAMEBUFFER, this->frameBuffers->fbo);
+//  glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0); // write to default framebuffer
+//  // blit to default framebuffer. Note that this may or may not work as the internal formats of both the FBO and default framebuffer have to match.
+//  // the internal formats are implementation defined. This works on all of my systems, but if it doesn't on yours you'll likely have to write to the
+//  // depth buffer in another shader stage (or somehow see to match the default framebuffer's internal format with the FBO's internal format).
+//  glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+//  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+}
+
+void RenderWidget::geometryPassPaint()
+{
+  this->frameBuffers->bindForWriting();
+  this->geometryProgram->bind();
+
+  this->glEnable(GL_DEPTH_TEST);
   this->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   this->glBindVertexArray(this->VAO);
   this->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->EBO);
-
-  this->geometryProgram->bind();
 
   this->view = this->camera->getViewMatrix();
   this->proj = this->camera->getProjectionMatrix();
@@ -113,7 +219,6 @@ void RenderWidget::geometryPass()
   this->geometryProgram->setUniformValue("isFlatFaces", this->isFlatFaces);
   this->geometryProgram->setUniformValue("isDiffuseTextureActive", this->isDiffuseTextureActive);
   this->geometryProgram->setUniformValue("isBumpMapActive", this->isBumpMapActive);
-
   
   this->glActiveTexture(GL_TEXTURE0);
   this->glBindTexture(GL_TEXTURE_2D, this->DIFFUSE_TEXTURE_2D);
@@ -133,6 +238,7 @@ void RenderWidget::geometryPass()
                         (GLsizei) this->countElements,
                         GL_UNSIGNED_INT,
                         (void *) 0);
+  this->glDisable(GL_DEPTH_TEST);
 }
 
 
@@ -374,6 +480,73 @@ void RenderWidget::loadBuffers( unsigned int VAO,
                                 GL_FALSE,                           // normalized
                                 sizeof(Vertex),                     // stride
                                 (void*) (4 * sizeof(glm::vec3)) );  // pointer
+}
+
+void RenderWidget::setupLightQuad()
+{
+  this->glGenVertexArrays(1, (GLuint*) &quadVAO);
+  this->glBindVertexArray((GLuint) quadVAO);
+  this->glGenBuffers(1, (GLuint*) &quadVBO);
+
+  struct QuadVertex
+  {
+    glm::vec3 pos;
+    glm::vec2 uv;
+  };
+
+  std::vector<QuadVertex> vboDataArray;
+  vboDataArray.push_back({glm::vec3(1.0f, -1.0f, 0.0f), glm::vec2(1.0f, 1.0f)});
+  vboDataArray.push_back({glm::vec3(1.0f, 1.0f, 0.0f), glm::vec2(1.0f, 0.0f)});
+  vboDataArray.push_back({glm::vec3(-1.0f, 1.0f, 0.0f), glm::vec2(0.0f, 0.0f)});
+  vboDataArray.push_back({glm::vec3(1.0f, -1.0f, 0.0f), glm::vec2(1.0f, 1.0f)});
+  vboDataArray.push_back({glm::vec3(-1.0f, 1.0f, 0.0f), glm::vec2(0.0f, 0.0f)});
+  vboDataArray.push_back({glm::vec3(-1.0f, -1.0f, 0.0f), glm::vec2(0.0f, 1.0f)});
+
+  // Intercalating Data in the VBO
+  // float vboDataArray[] = {
+  //   1.0f, -1.0f, 0.0f,
+  //   1.0f, 1.0f,
+  //   1.0f, 1.0f, 0.0f,
+  //   1.0f, 0.0f,
+  //   -1.0f, 1.0f, 0.0f,
+  //   0.0f, 0.0f,
+
+  //   1.0f, -1.0f, 0.0f,
+  //   1.0f, 1.0f
+  //   -1.0f, 1.0f, 0.0f,
+  //   0.0f, 0.0f,
+  //   -1.0f, -1.0f, 0.0f,
+  //   0.0f, 1.0f,
+  // };
+
+  // Binds the Current VAO
+  this->glBindVertexArray(quadVAO);
+
+  // Memory Allocation
+  this->glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+  this->glBufferData( GL_ARRAY_BUFFER,
+                      vboDataArray.size() * sizeof(QuadVertex),
+                      &vboDataArray[0],
+                      GL_STATIC_DRAW);
+
+
+  // Position Attribute
+  this->glEnableVertexAttribArray( 0 );
+  this->glVertexAttribPointer(  0,                            // index
+                                3,                            // size
+                                GL_FLOAT,                     // type
+                                GL_FALSE,                     // normalized
+                                1 * sizeof(QuadVertex),               // stride
+                                (void*) 0 );                  // pointer
+
+  // UV Attribute
+  this->glEnableVertexAttribArray( 1 );
+  this->glVertexAttribPointer(  1,                                  // index
+                                2,                                  // size
+                                GL_FLOAT,                           // type
+                                GL_FALSE,                           // normalized
+                                1 * sizeof(QuadVertex),                     // stride
+                                (void*) (1 * sizeof(glm::vec3)) );  // pointer
 }
 
 void RenderWidget::setWireframeOverwrite(bool value)

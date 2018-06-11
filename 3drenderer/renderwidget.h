@@ -43,8 +43,6 @@ private:
     virtual void paintGL();
     virtual void resizeGL(int w, int h);
 
-    virtual void geometryPass();
-
     virtual void mousePressEvent(QMouseEvent *event);
     virtual void mouseReleaseEvent(QMouseEvent *event);
     virtual void mouseMoveEvent(QMouseEvent *event);
@@ -52,9 +50,13 @@ private:
     virtual void keyPressEvent(QKeyEvent *event);
     virtual void keyReleaseEvent(QKeyEvent *event);
 
+    void geometryPassPaint();
+    void lightPassPaint();
+
     void createBuffers( unsigned int* VAO,
                         unsigned int* VBO,
                         unsigned int* EBO);
+    void setupLightQuad();
 
     void loadBuffers( unsigned int VAO,
                       unsigned int VBO,
@@ -80,6 +82,10 @@ private:
                             std::vector<glm::vec3>& bitangents);
 
     QOpenGLShaderProgram* geometryProgram;
+    QOpenGLShaderProgram* lightProgram;
+
+    unsigned int quadVAO;
+    unsigned int quadVBO;
 
     unsigned int VAO;
     unsigned int VBO;
