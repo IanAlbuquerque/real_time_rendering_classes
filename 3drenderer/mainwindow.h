@@ -41,6 +41,15 @@ public slots:
 
     void onClickSphericalMapping(bool value);
     void onClickCubeMapping(bool value);
+
+    void onClickNoneBuffer(bool value);
+    void onClickPositionBuffer(bool value);
+    void onClickNormalBuffer(bool value);
+    void onClickTriangleCoordsBuffer(bool value);
+    void onClickTextureCoordsBuffer(bool value);
+    void onClickMaterialAmbientBuffer(bool value);
+    void onClickMaterialDiffuseBuffer(bool value);
+    void onClickMaterialSpecularBuffer(bool value);
 };
 
 #endif // MAINWINDOW_H

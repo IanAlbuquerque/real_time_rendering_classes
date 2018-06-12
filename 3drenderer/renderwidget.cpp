@@ -36,9 +36,19 @@ RenderWidget::RenderWidget(QWidget *parent)
   this->isDiffuseTextureActive = false;
   this->isBumpMapActive = false;
 
+  this->isPositionBufferVisible = false;
+  this->isNormalBufferVisible = false;
+  this->isTriangleCoordsBufferVisible = false;
+  this->isTextureCoordsBufferVisible = false;
+  this->isMaterialAmbientBufferVisible = false;
+  this->isMaterialDiffuseBufferVisible = false;
+  this->isMaterialSpecularBufferVisible = false;
+
   this->diffuseColor = glm::vec3(0.0f, 0.0f, 0.0f);
   this->materialShininess = 24.0f;
   this->isSphericalMapping = true;
+
+  this->timer.start();
 
 }
 
@@ -84,42 +94,48 @@ void RenderWidget::initializeGL()
   this->createTexture(&(this->BUMP_TEXTURE_2D));
 
   this->setupLightQuad();
-  qDebug() << "init";
 }
 
 void RenderWidget::paintGL()
 {
-  qDebug() << "paintGL";
   this->geometryPassPaint();
   this->lightPassPaint();
+  this->update();
 }
 
 void RenderWidget::lightPassPaint()
 {
   this->glBindFramebuffer(GL_FRAMEBUFFER, 0);
-//  this->glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
   this->lightProgram->bind();
   this->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-//  this->frameBuffers->bindForReading();
 
   GLsizei width = this->width();
   GLsizei height = this->height();
   GLsizei halfWidth = (GLsizei)(width / 2.0f);
   GLsizei halfHeight = (GLsizei)(height / 2.0f);
 
+  QMatrix4x4 m(glm::value_ptr(glm::transpose(this->model)));
+  QMatrix4x4 v(glm::value_ptr(glm::transpose(this->view)));
+  QMatrix4x4 mv = v * m;
+  this->geometryProgram->setUniformValue("mv", mv);
+
   this->lightProgram->setUniformValue("isWireframeOverwrite", this->isWireframeOverwrite);
   this->lightProgram->setUniformValue("isEdgesVisible", this->isEdgesVisible);
+  this->lightProgram->setUniformValue("time", this->timer.elapsed());
+
+  this->lightProgram->setUniformValue("isPositionBufferVisible", this->isPositionBufferVisible);
+  this->lightProgram->setUniformValue("isNormalBufferVisible", this->isNormalBufferVisible);
+  this->lightProgram->setUniformValue("isTriangleCoordsBufferVisible", this->isTriangleCoordsBufferVisible);
+  this->lightProgram->setUniformValue("isTextureCoordsBufferVisible", this->isTextureCoordsBufferVisible);
+  this->lightProgram->setUniformValue("isMaterialAmbientBufferVisible", this->isMaterialAmbientBufferVisible);
+  this->lightProgram->setUniformValue("isMaterialDiffuseBufferVisible", this->isMaterialDiffuseBufferVisible);
+  this->lightProgram->setUniformValue("isMaterialSpecularBufferVisible", this->isMaterialSpecularBufferVisible);
 
   this->glActiveTexture(GL_TEXTURE0);
   this->frameBuffers->setReadBuffer(FrameBuffers::FRAMEBUFFER_TEXTURE_TYPE_POSITION);
   this->lightProgram->setUniformValue("positionTextureSampler", 0);
-
-
-//  this->glActiveTexture(GL_TEXTURE0);
-//  this->glBindTexture(GL_TEXTURE_2D, this->DIFFUSE_TEXTURE_2D);
-//  this->lightProgram->setUniformValue("positionTextureSampler", 0);
 
   this->glActiveTexture(GL_TEXTURE1);
   this->frameBuffers->setReadBuffer(FrameBuffers::FRAMEBUFFER_TEXTURE_TYPE_NORMAL);
@@ -145,48 +161,8 @@ void RenderWidget::lightPassPaint()
   this->frameBuffers->setReadBuffer(FrameBuffers::FRAMEBUFFER_TEXTURE_TYPE_MATERIAL_SPECULAR);
   this->lightProgram->setUniformValue("materialSpecularTextureSampler", 6);
 
-
-//   this->frameBuffers->setReadBuffer(FrameBuffers::FRAMEBUFFER_TEXTURE_TYPE_POSITION);
-//   this->glBlitFramebuffer(0, 0, width, height,
-//                   0, 0, halfWidth, halfHeight, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-
-//   this->frameBuffers->setReadBuffer(FrameBuffers::FRAMEBUFFER_TEXTURE_TYPE_NORMAL);
-//   this->glBlitFramebuffer(0, 0, width, height,
-//                   0, halfHeight, halfWidth, height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-
-//   this->frameBuffers->setReadBuffer(FrameBuffers::FRAMEBUFFER_TEXTURE_TYPE_TRIANGLE_COORDINATES);
-//   this->glBlitFramebuffer(0, 0, width, height,
-//                   halfWidth, halfHeight, width, height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-
-//   this->frameBuffers->setReadBuffer(FrameBuffers::FRAMEBUFFER_TEXTURE_TYPE_TEXTURE_COORDINATES);
-//   this->glBlitFramebuffer(0, 0, width, height,
-//                   halfWidth, 0, width, halfHeight, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-
-//   this->frameBuffers->setReadBuffer(FrameBuffers::FRAMEBUFFER_TEXTURE_TYPE_MATERIAL_AMBIENT);
-//   this->glBlitFramebuffer(0, 0, width, height,
-//                   halfWidth, halfHeight, width, height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-
-//   this->frameBuffers->setReadBuffer(FrameBuffers::FRAMEBUFFER_TEXTURE_TYPE_MATERIAL_DIFFUSE);
-//   this->glBlitFramebuffer(0, 0, width, height,
-//                   halfWidth, halfHeight, width, height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-
-//   this->frameBuffers->setReadBuffer(FrameBuffers::FRAMEBUFFER_TEXTURE_TYPE_MATERIAL_SPECULAR);
-//   this->glBlitFramebuffer(0, 0, width, height,
-//                   halfWidth, halfHeight, width, height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-
   this->glBindVertexArray(this->quadVAO);
-  qDebug() << "gonna render";
   this->glDrawArrays(GL_TRIANGLES, (GLint) 0, (GLsizei) 6);
-  qDebug() << "rendered";
-
-//  glBindFramebuffer(GL_READ_FRAMEBUFFER, this->frameBuffers->fbo);
-//  glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0); // write to default framebuffer
-//  // blit to default framebuffer. Note that this may or may not work as the internal formats of both the FBO and default framebuffer have to match.
-//  // the internal formats are implementation defined. This works on all of my systems, but if it doesn't on yours you'll likely have to write to the
-//  // depth buffer in another shader stage (or somehow see to match the default framebuffer's internal format with the FBO's internal format).
-//  glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
-//  glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
 }
 
 void RenderWidget::geometryPassPaint()
@@ -246,6 +222,7 @@ void RenderWidget::resizeGL(int width, int height)
 {
   this->glViewport(0, 0, width, height);
   this->camera->updateWH(width, height);
+  this->frameBuffers->init(width, height);
 }
 
 
@@ -304,7 +281,9 @@ void RenderWidget::mouseMoveEvent(QMouseEvent *event)
   if(this->isPanMovementActive)
   {
     glm::vec2 currentPanScreenCoordinates = clickPosition;
-    this->camera->cameraPan(currentPanScreenCoordinates - this->lastPanScreenCoordinates);
+    glm::vec2 delta = currentPanScreenCoordinates - this->lastPanScreenCoordinates;
+    delta.y *= -1;
+    this->camera->cameraPan(delta);
     this->lastPanScreenCoordinates = currentPanScreenCoordinates;
     this->update();
   }
@@ -716,3 +695,65 @@ void RenderWidget::computeTangentBasis( std::vector<glm::vec3> & positions,
     bitangents[vi2] += (bitangent / numFacesInThatVertex[vi2]);
   }
 }
+
+void RenderWidget::setNoneBuffer(bool value)
+{
+  this->isPositionBufferVisible = false;
+  this->isNormalBufferVisible = false;
+  this->isTriangleCoordsBufferVisible = false;
+  this->isTextureCoordsBufferVisible = false;
+  this->isMaterialAmbientBufferVisible = false;
+  this->isMaterialDiffuseBufferVisible = false;
+  this->isMaterialSpecularBufferVisible = false;
+  this->update();
+}
+
+void RenderWidget::setPositionBuffer(bool value)
+{
+  this->setNoneBuffer(true);
+  this->isPositionBufferVisible = value;
+  this->update();
+}
+
+void RenderWidget::setNormalBuffer(bool value)
+{
+  this->setNoneBuffer(true);
+  this->isNormalBufferVisible = value;
+  this->update();
+}
+
+void RenderWidget::setTriangleCoordsBuffer(bool value)
+{
+  this->setNoneBuffer(true);
+  this->isTriangleCoordsBufferVisible = value;
+  this->update();
+}
+
+void RenderWidget::setTextureCoordsBuffer(bool value)
+{
+  this->setNoneBuffer(true);
+  this->isTextureCoordsBufferVisible = value;
+  this->update();
+}
+
+void RenderWidget::setMaterialAmbientBuffer(bool value)
+{
+  this->setNoneBuffer(true);
+  this->isMaterialAmbientBufferVisible = value;
+  this->update();
+}
+
+void RenderWidget::setMaterialDiffuseBuffer(bool value)
+{
+  this->setNoneBuffer(true);
+  this->isMaterialDiffuseBufferVisible = value;
+  this->update();
+}
+
+void RenderWidget::setMaterialSpecularBuffer(bool value)
+{
+  this->setNoneBuffer(true);
+  this->isMaterialSpecularBufferVisible = value;
+  this->update();
+}
+

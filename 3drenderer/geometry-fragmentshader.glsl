@@ -24,7 +24,7 @@ in vec2 fragmentUV;
 layout (location = 0) out vec3 WorldPosOut;
 layout (location = 1) out vec3 NormalOut;
 layout (location = 2) out vec3 TriangleCoordinatesOut;
-layout (location = 3) out vec2 TexCoordOut;
+layout (location = 3) out vec3 TexCoordOut;
 layout (location = 4) out vec3 MaterialAmbientOut;
 layout (location = 5) out vec3 MaterialDiffuseOut;
 layout (location = 6) out vec3 MaterialSpecularOut;
@@ -57,7 +57,7 @@ void main()
     WorldPosOut = fragmentPositionVSpace;
     NormalOut = N;
     TriangleCoordinatesOut = fragmentTriangleCoordinate;
-    TexCoordOut = fragmentUV;
+    TexCoordOut = vec3(fragmentUV.x, fragmentUV.y, 0.0);
     MaterialAmbientOut = materialAmbient;
     MaterialDiffuseOut = materialDiffuse;
     MaterialSpecularOut = materialSpecular;

@@ -88,6 +88,42 @@ MainWindow::MainWindow(QWidget *parent) :
                 this,
                 SLOT(onClickCubeMapping(bool)));
 
+
+
+  this->connect(this->ui->radioBufferNone,
+                SIGNAL(clicked(bool)),
+                this,
+                SLOT(onClickNoneBuffer(bool)));
+  this->connect(this->ui->radioBufferPosition,
+                SIGNAL(clicked(bool)),
+                this,
+                SLOT(onClickPositionBuffer(bool)));
+  this->connect(this->ui->radioBufferNormal,
+                SIGNAL(clicked(bool)),
+                this,
+                SLOT(onClickNormalBuffer(bool)));
+  this->connect(this->ui->radioBufferTriangle,
+                SIGNAL(clicked(bool)),
+                this,
+                SLOT(onClickTriangleCoordsBuffer(bool)));
+  this->connect(this->ui->radioBufferTexture,
+                SIGNAL(clicked(bool)),
+                this,
+                SLOT(onClickTextureCoordsBuffer(bool)));
+  this->connect(this->ui->radioBufferMaterialAmbient,
+                SIGNAL(clicked(bool)),
+                this,
+                SLOT(onClickMaterialAmbientBuffer(bool)));
+  this->connect(this->ui->radioBufferMaterialDiffuse,
+                SIGNAL(clicked(bool)),
+                this,
+                SLOT(onClickMaterialDiffuseBuffer(bool)));
+  this->connect(this->ui->radioBufferMaterialSpecular,
+                SIGNAL(clicked(bool)),
+                this,
+                SLOT(onClickMaterialSpecularBuffer(bool)));
+
+
   this->sendDiffuseColorToOpenGL();
   this->ui->openGLWidget->setShininess(this->ui->spinBoxShininess->value());
 }
@@ -103,6 +139,39 @@ void MainWindow::onClickCubeMapping(bool value)
 {
   if(value)
     this->ui->openGLWidget->setSphericalMapping(false);
+}
+
+void MainWindow::onClickNoneBuffer(bool value)
+{
+  this->ui->openGLWidget->setNoneBuffer(value);
+}
+void MainWindow::onClickPositionBuffer(bool value)
+{
+  this->ui->openGLWidget->setPositionBuffer(value);
+}
+void MainWindow::onClickNormalBuffer(bool value)
+{
+  this->ui->openGLWidget->setNormalBuffer(value);
+}
+void MainWindow::onClickTriangleCoordsBuffer(bool value)
+{
+  this->ui->openGLWidget->setTriangleCoordsBuffer(value);
+}
+void MainWindow::onClickTextureCoordsBuffer(bool value)
+{
+  this->ui->openGLWidget->setTextureCoordsBuffer(value);
+}
+void MainWindow::onClickMaterialAmbientBuffer(bool value)
+{
+  this->ui->openGLWidget->setMaterialAmbientBuffer(value);
+}
+void MainWindow::onClickMaterialDiffuseBuffer(bool value)
+{
+  this->ui->openGLWidget->setMaterialDiffuseBuffer(value);
+}
+void MainWindow::onClickMaterialSpecularBuffer(bool value)
+{
+  this->ui->openGLWidget->setMaterialSpecularBuffer(value);
 }
 
 void MainWindow::onImportOBJClick(bool isClicked)

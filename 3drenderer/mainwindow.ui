@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1102</width>
-    <height>603</height>
+    <width>1109</width>
+    <height>714</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -134,23 +134,37 @@
          </widget>
         </item>
         <item>
-         <widget class="QRadioButton" name="radioButtonSpherical">
-          <property name="text">
-           <string>Spherical UV Mapping</string>
+         <widget class="QGroupBox" name="groupBox">
+          <property name="title">
+           <string>UV Mapping</string>
           </property>
-          <property name="checked">
-           <bool>true</bool>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QRadioButton" name="radioButtonCube">
-          <property name="text">
-           <string>Cube UV Mapping</string>
-          </property>
-          <property name="checked">
-           <bool>false</bool>
-          </property>
+          <layout class="QVBoxLayout" name="verticalLayout_2">
+           <item>
+            <widget class="QRadioButton" name="radioButtonSpherical">
+             <property name="text">
+              <string>Spherical UV Mapping</string>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QRadioButton" name="radioButtonCube">
+             <property name="text">
+              <string>Cube UV Mapping</string>
+             </property>
+             <property name="checked">
+              <bool>false</bool>
+             </property>
+            </widget>
+           </item>
+          </layout>
+          <zorder>radioButtonCube</zorder>
+          <zorder>radioButtonCube</zorder>
+          <zorder>radioButtonCube</zorder>
+          <zorder>radioButtonCube</zorder>
+          <zorder>radioButtonSpherical</zorder>
          </widget>
         </item>
         <item>
@@ -373,6 +387,74 @@
          </layout>
         </item>
         <item>
+         <widget class="QGroupBox" name="groupBox_2">
+          <property name="title">
+           <string>Buffer Output Overwrite:</string>
+          </property>
+          <layout class="QVBoxLayout" name="verticalLayout_3">
+           <item>
+            <widget class="QRadioButton" name="radioBufferNone">
+             <property name="text">
+              <string>None</string>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QRadioButton" name="radioBufferPosition">
+             <property name="text">
+              <string>Position</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QRadioButton" name="radioBufferNormal">
+             <property name="text">
+              <string>Normal</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QRadioButton" name="radioBufferTriangle">
+             <property name="text">
+              <string>Barycentric Coordinates</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QRadioButton" name="radioBufferTexture">
+             <property name="text">
+              <string>Texture UV Mapping</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QRadioButton" name="radioBufferMaterialAmbient">
+             <property name="text">
+              <string>Material Ambient</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QRadioButton" name="radioBufferMaterialDiffuse">
+             <property name="text">
+              <string>Material Diffuse</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QRadioButton" name="radioBufferMaterialSpecular">
+             <property name="text">
+              <string>Material Specular</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
          <spacer name="verticalSpacer_2">
           <property name="orientation">
            <enum>Qt::Vertical</enum>
@@ -396,7 +478,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1102</width>
+     <width>1109</width>
      <height>20</height>
     </rect>
    </property>

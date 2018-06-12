@@ -6,6 +6,7 @@
 #include <QOpenGLExtraFunctions>
 #include <QOpenGLShaderProgram>
 #include <QVector3D>
+#include <QTime>
 #include <QMatrix4x4>
 
 #include <vector>
@@ -37,6 +38,15 @@ public:
     void setDiffuseColor(float r, float g, float b);
     void setShininess(float s);
     void setSphericalMapping(bool v);
+
+    void setNoneBuffer(bool value);
+    void setPositionBuffer(bool value);
+    void setNormalBuffer(bool value);
+    void setTriangleCoordsBuffer(bool value);
+    void setTextureCoordsBuffer(bool value);
+    void setMaterialAmbientBuffer(bool value);
+    void setMaterialDiffuseBuffer(bool value);
+    void setMaterialSpecularBuffer(bool value);
 
 private:
     virtual void initializeGL();
@@ -113,9 +123,19 @@ private:
     bool isDiffuseTextureActive;
     bool isBumpMapActive;
 
+    bool isPositionBufferVisible;
+    bool isNormalBufferVisible;
+    bool isTriangleCoordsBufferVisible;
+    bool isTextureCoordsBufferVisible;
+    bool isMaterialAmbientBufferVisible;
+    bool isMaterialDiffuseBufferVisible;
+    bool isMaterialSpecularBufferVisible;
+
     glm::vec3 diffuseColor;
     float materialShininess;
     bool isSphericalMapping;
+
+    QTime timer;
 
     Mesh* mesh;
 };
